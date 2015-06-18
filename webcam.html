@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=320, initial-scale=1"/>
+	<title>监控摄像头</title>
+	<style type="text/css">
+		body {
+			background: #FFF;
+			text-align: center;
+			/*margin-top: 1%;*/
+		}
+		#videoCanvas {
+			/* Always stretch the canvas to 960x720, regardless of its
+			internal size. */
+			background: #000;
+			width: 960px;
+			height: 720px;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="videoCanvas" width="960" height="720" />
+	<script type="text/javascript" src="jsmpg.js"></script>
+	<script type="text/javascript">
+		// Setup the WebSocket connection and start the player
+		var client = new WebSocket( 'ws://10.140.10.49:8084/' );
+		//var client = new WebSocket( 'ws://192.168.13.128:8084/' );
+		var canvas = document.getElementById('videoCanvas');
+		var player = new jsmpeg(client, {canvas:canvas});
+	</script>
+</body>
+</html>

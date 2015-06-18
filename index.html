@@ -1,0 +1,421 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>智能家居控制系统</title>
+<style type="text/css">
+	body {
+		background-color: #A2CF6A;
+	}
+	table {
+		border:2px solid;
+		border-radius:25px;
+		box-shadow: 10px 10px 5px #888888;
+	}
+	h1 {
+		text-shadow: 5px 5px 5px #CCCCCC;
+	}
+	#videoCanvas {
+			background: #000;
+			width: 200px;
+			height: 150px;
+	}
+</style>
+</head>
+<body>
+<h1>智能家居控制系统</h1>
+<table>
+<tr>
+<td style="vertical-align:top" width="430">
+<h3>温度控制</h3>
+<p>控制空调的规则</p>
+<select id="Change_Aircon">
+	<option value="manual">手动控制</option>
+	<option value="timming">定时开启/关闭</option>
+	<option value="auto">自动温控</option>
+</select>
+<p>
+<label>手动控制开关：</label>
+<select id="Aircon_On_Off">
+	<option value="on">开</option>
+	<option value="off">关</option>
+<select>
+</p>
+<p id="Display_Temperature">当前的室温：</p>
+<p>
+<label>开起空调的阈值温度：</label>
+<input type="number" id="Aircon_Threshold"/>
+</p>
+<p>
+<label>开启/关闭空调的时间：</label><br />
+<input type="time" id="Aircon_Start"/>
+<input type="time" id="Aircon_Stop"/>
+</p>
+</td>
+<td style="vertical-align:top" width="430">
+<h3>湿度控制</h3>
+<p>控制除湿器的规则</p>
+<select id="Change_Dryer">
+	<option value="manual">手动控制</option>
+	<option value="timming">定时开启/关闭</option>
+	<option value="auto">自动湿度控制</option>
+</select>
+<p>
+<label>手动控制开关：</label>
+<select id="Dryer_On_Off">
+    <option value="on">开</option>
+    <option value="off">关</option>
+<select>
+</p>
+<p id="Display_Moisture">当前空气湿度：</p>
+<p>
+<label>开起除湿器的阈值湿度：</label>
+<input type="number" id="Dryer_Threshold"/>
+</p>
+<p>
+<label>开启/关闭除湿器的时间：</label><br />
+<input type="time" id="Dryer_Start"/>
+<input type="time" id="Dryer_Stop"/>
+</p>
+</td>
+<td style="vertical-align:top" width="230">
+<h3>防盗监测</h3>
+<p>
+<label>防盗监测开关：</label>
+<select id="Moni_On_Off">
+    <option value="on">开</option>
+    <option value="off">关</option>
+<select>
+</p>
+<p id="Display_Status">当前状态：正常^_^</p>
+<p><input id="Reset_Moni" type="button" value="重设状态" />
+<a href="webcam.html">更大视频窗口</a></p>
+
+<canvas id="videoCanvas" width="200" height="150"/>
+<script type="text/javascript" src="jsmpg.js"></script>
+<script type="text/javascript">
+	// Setup the WebSocket connection and start the player
+	var client = new WebSocket( 'ws://10.140.10.49:8084/' );
+	//var client = new WebSocket( 'ws://192.168.13.128:8084/' );
+	var canvas = document.getElementById('videoCanvas');
+	var player = new jsmpeg(client, {canvas:canvas});
+</script>
+
+</td>
+</tr>
+</table>
+<script>
+var service = "service.php";
+var distance = -1;
+//initiate the web page
+var request = new XMLHttpRequest();
+request.open("GET", service + "?askfor=init");
+request.send();
+request.onreadystatechange = function() {
+	if(request.readyState === 4 && request.status === 200) {
+		/*
+		JSON Sample:
+		{
+			temperature
+			moisture
+			distance
+			air_mode
+			air_on
+			air_threshold
+			air_start
+			air_stop
+			dry_mode
+			dry_on
+			dry_threshold
+			dry_start
+			dry_stop
+		}
+		*/
+		var init_data = JSON.parse(request.responseText);
+		if (init_data.air_mode == "manual") {
+			document.getElementById("Change_Aircon").value = "manual";
+			if (init_data.air_on == "T") {
+				document.getElementById("Aircon_On_Off").value = "on";
+			} else {
+				document.getElementById("Aircon_On_Off").value = "off";
+			}
+			document.getElementById("Aircon_Threshold").value = init_data.air_threshold;
+			document.getElementById("Aircon_Start").value = init_data.air_start;
+			document.getElementById("Aircon_Stop").value = init_data.air_stop;
+			
+			document.getElementById("Aircon_On_Off").disabled = false;
+			document.getElementById("Aircon_Threshold").disabled = true;
+			document.getElementById("Aircon_Start").disabled = true;
+			document.getElementById("Aircon_Stop").disabled = true;
+		} else if (init_data.air_mode == "timming") {
+			document.getElementById("Change_Aircon").value = "timming";
+			if (init_data.air_on == "T") {
+				document.getElementById("Aircon_On_Off").value = "on";
+			} else {
+				document.getElementById("Aircon_On_Off").value = "off";
+			}
+			document.getElementById("Aircon_Threshold").value = init_data.air_threshold;
+			document.getElementById("Aircon_Start").value = init_data.air_start;
+			document.getElementById("Aircon_Stop").value = init_data.air_stop;
+			
+			document.getElementById("Aircon_On_Off").disabled = true;
+			document.getElementById("Aircon_Threshold").disabled = true;
+			document.getElementById("Aircon_Start").disabled = false;
+			document.getElementById("Aircon_Stop").disabled = false;
+		} else {
+			document.getElementById("Change_Aircon").value = "auto";
+			if (init_data.air_on == "T") {
+				document.getElementById("Aircon_On_Off").value = "on";
+			} else {
+				document.getElementById("Aircon_On_Off").value = "off";
+			}
+			document.getElementById("Aircon_Threshold").value = init_data.air_threshold;
+			document.getElementById("Aircon_Start").value = init_data.air_start;
+			document.getElementById("Aircon_Stop").value = init_data.air_stop;
+			
+			document.getElementById("Aircon_On_Off").disabled = true;
+			document.getElementById("Aircon_Threshold").disabled = false;
+			document.getElementById("Aircon_Start").disabled = true;
+			document.getElementById("Aircon_Stop").disabled = true;
+		}
+		if (init_data.dry_mode == "manual") {
+			document.getElementById("Change_Dryer").value = "manual";
+			if (init_data.dry_on == "T") {
+				document.getElementById("Dryer_On_Off").value = "on";
+			} else {
+				document.getElementById("Dryer_On_Off").value = "off";
+			}
+			document.getElementById("Dryer_Threshold").value = init_data.dry_threshold;
+			document.getElementById("Dryer_Start").value = init_data.dry_start;
+			document.getElementById("Dryer_Stop").value = init_data.dry_stop;
+			
+			document.getElementById("Dryer_On_Off").disabled = false;
+			document.getElementById("Dryer_Threshold").disabled = true;
+			document.getElementById("Dryer_Start").disabled = true;
+			document.getElementById("Dryer_Stop").disabled = true;
+		} else if (init_data.dry_mode == "timming") {
+			document.getElementById("Change_Dryer").value = "timming";
+			if (init_data.dry_on == "T") {
+				document.getElementById("Dryer_On_Off").value = "on";
+			} else {
+				document.getElementById("Dryer_On_Off").value = "off";
+			}
+			document.getElementById("Dryer_Threshold").value = init_data.dry_threshold;
+			document.getElementById("Dryer_Start").value = init_data.dry_start;
+			document.getElementById("Dryer_Stop").value = init_data.dry_stop;
+			
+			document.getElementById("Dryer_On_Off").disabled = true;
+			document.getElementById("Dryer_Threshold").disabled = true;
+			document.getElementById("Dryer_Start").disabled = false;
+			document.getElementById("Dryer_Stop").disabled = false;
+		} else {
+			document.getElementById("Change_Dryer").value = "auto";
+			if (init_data.dry_on == "T") {
+				document.getElementById("Dryer_On_Off").value = "on";
+			} else {
+				document.getElementById("Dryer_On_Off").value = "off";
+			}
+			document.getElementById("Dryer_Threshold").value = init_data.dry_threshold;
+			document.getElementById("Dryer_Start").value = init_data.dry_start;
+			document.getElementById("Dryer_Stop").value = init_data.dry_stop;
+			
+			document.getElementById("Dryer_On_Off").disabled = true;
+			document.getElementById("Dryer_Threshold").disabled = false;
+			document.getElementById("Dryer_Start").disabled = true;
+			document.getElementById("Dryer_Stop").disabled = true;
+		}
+		document.getElementById("Moni_On_Off").value = "on";
+	}
+};
+
+refreshPage();
+function refreshPage() {
+	var request = new XMLHttpRequest();
+	request.open("GET", service + "?askfor=values");
+	request.send();
+	request.onreadystatechange = function() {
+		if(request.readyState === 4 && request.status === 200) {
+			/*
+			JSON Sample:
+			{
+				"temperature":a_number,
+				"moisture":a_number,
+				"distance":a_number
+			}
+			*/
+			//alert(request.responseText);
+			var data = JSON.parse(request.responseText);
+			document.getElementById("Display_Temperature").innerHTML = "当前的室温：" + data.temperature;
+			document.getElementById("Display_Moisture").innerHTML = "当前空气湿度：" + data.moisture;
+			if (document.getElementById("Moni_On_Off").value == "on") {
+				if (distance <= 0) {
+					distance = data.distance;
+				} else if (distance * 0.7 > data.distance) {
+					document.getElementById("Display_Status").innerHTML = "当前状态：有人闯入！";
+				}
+			}
+			//for debug
+			//alert(request.responseText);
+			//
+		}
+	};
+	//act like a infinite loop
+	setTimeout("refreshPage()",1500);
+}
+
+document.getElementById("Change_Aircon").onchange = function() {
+	if(document.getElementById("Change_Aircon").value == "manual") {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=air_mode&air_mode=manual");
+		
+		document.getElementById("Aircon_On_Off").disabled = false;
+		document.getElementById("Aircon_Threshold").disabled = true;
+		document.getElementById("Aircon_Start").disabled = true;
+		document.getElementById("Aircon_Stop").disabled = true;
+	} else if(document.getElementById("Change_Aircon").value == "timming") {
+		var request = new XMLHttpRequest();
+        request.open("POST", service);
+        request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=air_mode&air_mode=timming");
+		
+		document.getElementById("Aircon_On_Off").disabled = true;
+		document.getElementById("Aircon_Threshold").disabled = true;
+		document.getElementById("Aircon_Start").disabled = false;
+		document.getElementById("Aircon_Stop").disabled = false;
+	} else/*if(document.getElementById("Change_Action").value== "auto")*/ {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=air_mode&air_mode=auto");
+		
+		document.getElementById("Aircon_On_Off").disabled = true;
+		document.getElementById("Aircon_Threshold").disabled = false;
+		document.getElementById("Aircon_Start").disabled = true;
+		document.getElementById("Aircon_Stop").disabled = true;
+	}
+};
+
+document.getElementById("Aircon_On_Off").onchange = function() {
+	if(document.getElementById("Aircon_On_Off").value == "on") {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=air_on_off&air_on_off=T");
+	} else {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=air_on_off&air_on_off=F");
+	}
+};
+
+document.getElementById("Aircon_Threshold").onchange = function() {
+	var request = new XMLHttpRequest();
+	request.open("POST", service);
+	request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	request.send("req_type=air_threshold&air_threshold=" + document.getElementById("Aircon_Threshold").value);
+};
+
+document.getElementById("Aircon_Start").onchange = function() {
+	var request = new XMLHttpRequest();
+	request.open("POST", service);
+	request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	request.send("req_type=air_start&air_start=" + document.getElementById("Aircon_Start").value);
+};
+
+document.getElementById("Aircon_Stop").onchange = function() {
+	var request = new XMLHttpRequest();
+	request.open("POST", service);
+	request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	request.send("req_type=air_stop&air_stop=" + document.getElementById("Aircon_Stop").value);
+};
+
+//to be tested
+document.getElementById("Change_Dryer").onchange = function() {
+	if(document.getElementById("Change_Dryer").value == "manual") {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=dry_mode&dry_mode=manual");
+		
+		document.getElementById("Dryer_On_Off").disabled = false;
+		document.getElementById("Dryer_Threshold").disabled = true;
+		document.getElementById("Dryer_Start").disabled = true;
+		document.getElementById("Dryer_Stop").disabled = true;
+	} else if(document.getElementById("Change_Dryer").value == "timming") {
+		var request = new XMLHttpRequest();
+        request.open("POST", service);
+        request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=dry_mode&dry_mode=timming");
+		
+		document.getElementById("Dryer_On_Off").disabled = true;
+		document.getElementById("Dryer_Threshold").disabled = true;
+		document.getElementById("Dryer_Start").disabled = false;
+		document.getElementById("Dryer_Stop").disabled = false;
+	} else/*if(document.getElementById("Change_Dryer").value== "auto")*/ {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=dry_mode&dry_mode=auto");
+		
+		document.getElementById("Dryer_On_Off").disabled = true;
+		document.getElementById("Dryer_Threshold").disabled = false;
+		document.getElementById("Dryer_Start").disabled = true;
+		document.getElementById("Dryer_Stop").disabled = true;
+	}
+};
+
+document.getElementById("Dryer_On_Off").onchange = function() {
+	if(document.getElementById("Dryer_On_Off").value == "on") {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=dry_on_off&dry_on_off=T");
+	} else {
+		var request = new XMLHttpRequest();
+		request.open("POST", service);
+		request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		request.send("req_type=dry_on_off&dry_on_off=F");
+	}
+};
+
+document.getElementById("Dryer_Threshold").onchange = function() {
+	var request = new XMLHttpRequest();
+	request.open("POST", service);
+	request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	request.send("req_type=dry_threshold&dry_threshold=" + document.getElementById("Dryer_Threshold").value);
+};
+
+document.getElementById("Dryer_Start").onchange = function() {
+	var request = new XMLHttpRequest();
+	request.open("POST", service);
+	request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	request.send("req_type=dry_start&dry_start=" + document.getElementById("Dryer_Start").value);
+};
+
+document.getElementById("Dryer_Stop").onchange = function() {
+	var request = new XMLHttpRequest();
+	request.open("POST", service);
+	request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	request.send("req_type=dry_stop&dry_stop=" + document.getElementById("Dryer_Stop").value);
+};
+
+document.getElementById("Moni_On_Off").onchange = function() {
+	if (document.getElementById("Moni_On_Off").value == "off") {
+		distance = -1;
+		document.getElementById("Display_Status").innerHTML = "当前状态：正常^_^";
+		document.getElementById("Reset_Moni").disabled = true;
+	} else {
+		document.getElementById("Reset_Moni").disabled = false;
+	}
+};
+
+document.getElementById("Reset_Moni").onclick = function() {
+	distance = -1;
+	document.getElementById("Display_Status").innerHTML = "当前状态：正常^_^";
+};
+</script>
+</body>
+</html>
